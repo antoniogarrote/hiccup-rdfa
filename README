@@ -1,0 +1,71 @@
+# hiccup-rdfa
+
+RDFa functions for hiccup templates that can be used in Clojure Ring applications
+
+## Example
+
+(ns hiccuprdfatest.core
+  (:use [compojure core]
+        [compojure response]
+        [ring.adapter jetty]
+        [hiccup.core]
+        [hiccup.page-helpers]))
+
+
+(use 'hiccup-rdfa.core)
+
+
+;; we import the FOAF vocabulary from the project URL
+(def *vocab* (make-vocabulary-from-url "http://xmlns.com/foaf/spec/index.rdf" :xml "http://xmlns.com/foaf/0.1/" "foaf"))
+
+; we register the vocabulary
+; helper functions for the classes and properties in the vocabulary are generated
+(register-vocabulary *vocab*)
+
+; we use the helper functions in the hiccup template
+
+(def *geeks*
+     [{:name "Pablo"  :nick "pablete"
+       :tweet-home "http://twitter.com/pablete"}
+      {:name "Mauro"  :nick "malditogeek"
+       :tweet-home "http://twitter.com/malditogeek"}
+      {:name "Javier" :nick "jneira"
+       :tweet-home "http://twitter.com/jneira"}
+      {:name "Joel"   :nick "joeerl"
+       :tweet-home "http://twitter.com/joeerl"}])
+
+(defn rdfa-geeks-template
+  ([geeks]
+     (xhtml-rdfa-tag :en
+       [:head
+        [:title "rdfa test"]]
+       [:body
+         [:h1 "Some geeks"]
+         [:div {:id "geeks"}
+          (map (fn [geek]
+                 (foaf-Person (:tweet-home geek)
+                    {:id (:nick geek)
+                     :class "geek"
+                     :tag :div}
+                    (foaf-name (:name geek)
+                               {:class "name" :tag :p})
+                    (foaf-nick (:nick geek)
+                               {:class "nick" :tag :p})
+                    (link-foaf-homepage-to (:tweet-home geek)
+                                           {:class "tweet-home"
+                                            :tag :a}
+                                           (:tweet-home geek))))
+             geeks)]])))
+
+(defroutes rdfa-test
+  (GET "/geeks" request
+       (html (rdfa-geeks-template *geeks*))))
+
+(run-jetty (var rdfa-test) {:port 8081})
+
+
+## License
+
+Copyright (C) 2010 FIXME
+
+Distributed under the Eclipse Public License, the same as Clojure.
